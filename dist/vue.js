@@ -4,6 +4,164 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
+  var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
+  var ncname = "[a-zA-Z_][\\-\\.0-9_a-zA-Z]*";
+  var qnameCapture = "((?:".concat(ncname, "\\:)?").concat(ncname, ")");
+  var startTagOpen = new RegExp("^<".concat(qnameCapture)); // 匹配开始标签 [1] 为标签的名字
+
+  var startTagClose = /^\s*(\/?)>/;
+  var endTag = new RegExp("^<\\/".concat(qnameCapture, "[^>]*>"));
+
+  /**
+   * 匹配到一个删除一个，直到没有
+   * 参考：https://www.npmjs.com/package/htmlparser2
+   * @param {*} html
+   * @return {*}
+   */
+
+  function parseHTML(html) {
+    var ELEMENT_TYPE = 3;
+    var TEXT_TYPE = 1;
+    var stack = []; // 用于存放元素，从而构建抽象语法树 （栈的最后一个元素就是下一个元素的父元素）
+
+    var currentParent; // 指向栈的最后一个
+
+    var root;
+
+    function createASTElement(tag, attrs) {
+      return {
+        tag: tag,
+        type: ELEMENT_TYPE,
+        children: [],
+        attrs: attrs,
+        parent: null
+      };
+    } // 前进，删除匹配过的数据
+
+
+    function advance(n) {
+      html = html.substring(n);
+    }
+
+    function parseStartTag() {
+      var start = html.match(startTagOpen);
+
+      if (start) {
+        var match = {
+          tagName: start[1],
+          attrs: []
+        };
+        advance(start[0].length); // console.log(`[index] start match`, match, html);
+        // 如果不是结束标签就一直匹配下去
+
+        var attr = html.match(attribute);
+        var end = html.match(startTagClose);
+
+        while (!end && attr) {
+          match.attrs.push({
+            name: attr[1],
+            value: attr[3] || attr[4] || attr[5] || true
+          });
+          advance(attr[0].length);
+          end = html.match(startTagClose);
+          attr = html.match(attribute);
+        } // 删除结束标签
+
+
+        if (end) {
+          advance(end[0].length);
+        }
+
+        return match;
+      }
+
+      return false;
+    }
+
+    function handleStart(tag, attrs) {
+      var node = createASTElement(tag, attrs); // 检查树的根节点
+
+      if (!root) {
+        root = node;
+      }
+
+      if (currentParent) {
+        node.parent = currentParent;
+        currentParent.children.push(node);
+      }
+
+      stack.push(node);
+      currentParent = node;
+    } // 文本节点直接放到当前指向的节点
+
+
+    function handleText(content) {
+      var text = content.replace(/\s/g, "");
+      if (!text) return;
+      var node = {
+        text: text,
+        type: TEXT_TYPE,
+        parent: currentParent
+      };
+      currentParent.children.push(node);
+    }
+
+    function handleEnd(tag) {
+      var node = stack.pop();
+
+      if (node.tag !== tag) {
+        throw Error("tag 不匹配 ");
+      }
+
+      currentParent = stack[stack.length - 1];
+    } // html 的开始肯定是 < 符号
+
+
+    while (html) {
+      /**
+       * <div>111</div>
+       * 如果值为 0：标签的开始
+       * 不为0: 文本的结束位置 （111）
+       */
+      var textEnd = html.indexOf("<");
+
+      if (textEnd === 0) {
+        var startTagMatch = parseStartTag();
+
+        if (startTagMatch) {
+          handleStart(startTagMatch.tagName, startTagMatch.attrs);
+          continue;
+        }
+
+        var endTagMatch = html.match(endTag);
+
+        if (endTagMatch) {
+          handleEnd(endTagMatch[1]);
+          advance(endTagMatch[0].length);
+          continue;
+        } // break;
+
+      }
+
+      if (textEnd > 0) {
+        var text = html.substring(0, textEnd);
+
+        if (text) {
+          handleText(text);
+          advance(text.length);
+        }
+      }
+    }
+
+    return root;
+  }
+
+  function compileToFunction(template) {
+    // 1. 将 template 转换成 ast
+    var ast = parseHTML(template);
+    console.log("ast:", ast); // 2. 生成 render 方法(render 的返回值就是 虚拟 DOM)
+  }
+
   function _typeof(obj) {
     "@babel/helpers - typeof";
 
@@ -194,6 +352,32 @@
 
       vm.$options = options;
       initState(vm);
+
+      if (options.el) {
+        vm.$mount(options.el);
+      }
+    };
+
+    Vue.prototype.$mount = function (el) {
+      var vm = this;
+      var opts = vm.$options;
+      el = document.querySelector(el);
+
+      if (!opts.render) {
+        var template;
+
+        if (opts.template) {
+          template = opts.template;
+        } else {
+          template = el.outerHTML;
+        }
+
+        console.log("template1: ", template);
+
+        if (template) {
+          opts.render = compileToFunction(template);
+        }
+      }
     };
   }
 

@@ -1,3 +1,4 @@
+import { compileToFunction } from "./compiler/index";
 import { initState } from "./state";
 
 export function initMixin(Vue) {
@@ -8,5 +9,28 @@ export function initMixin(Vue) {
     vm.$options = options;
 
     initState(vm);
+
+    if (options.el) {
+      vm.$mount(options.el);
+    }
+  };
+
+  Vue.prototype.$mount = function (el) {
+    const vm = this;
+    const opts = vm.$options;
+    el = document.querySelector(el);
+
+    if (!opts.render) {
+      let template;
+      if (opts.template) {
+        template = opts.template;
+      } else {
+        template = el.outerHTML;
+      }
+      console.log("template1: ", template);
+      if (template) {
+        opts.render = compileToFunction(template);
+      }
+    }
   };
 }

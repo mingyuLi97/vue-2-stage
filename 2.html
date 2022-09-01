@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div :style="{padding: 4px}">{{name}}</div>
+      {{addr.name}}
+      <span>123</span>
+      <aside class="aside_class">
+      </aside>
+    </div>
+    <script src="dist/vue.js"></script>
+    <script>
+      console.log(Vue);
+      const vm = new Vue({
+        el: "#app",
+        // template: "<div>222</div>",
+        data() {
+          return {
+            name: "limy",
+            age: 25,
+            addr: {
+              num: 1,
+              cc: 1,
+            },
+            hobbies: [
+              "ball",
+              "sing",
+              {
+                a: "b",
+              },
+            ],
+          };
+        },
+      });
+
+      // vue 1.0 没有引入虚拟 DOM 使用 模版引擎，需要正则匹配替换 性能差
+
+      //
+      /**
+       * 2.0 使用 虚拟 DOM 数据变化后比较虚拟 DOM 的差异 最后更新改变的地方
+       *
+       * 将模版转换成 js 语法，即 render 函数，生成虚拟 DOM
+       *
+       */
+    </script>
+  </body>
+</html>

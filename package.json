@@ -11,5 +11,8 @@
     "@babel/preset-env": "^7.18.10",
     "rollup": "^2.78.1",
     "rollup-plugin-babel": "^4.4.0"
+  },
+  "dependencies": {
+    "vue": "2.6"
   }
 }
