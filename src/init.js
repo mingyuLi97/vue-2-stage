@@ -32,5 +32,6 @@ export function initMixin(Vue) {
         opts.render = compileToFunction(template);
       }
     }
+    console.log(opts.render);
   };
 }

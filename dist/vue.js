@@ -4,6 +4,100 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
+  function _typeof(obj) {
+    "@babel/helpers - typeof";
+
+    return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
+      return typeof obj;
+    } : function (obj) {
+      return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+    }, _typeof(obj);
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  function _defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  function _createClass(Constructor, protoProps, staticProps) {
+    if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) _defineProperties(Constructor, staticProps);
+    Object.defineProperty(Constructor, "prototype", {
+      writable: false
+    });
+    return Constructor;
+  }
+
+  function _slicedToArray(arr, i) {
+    return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+  }
+
+  function _arrayWithHoles(arr) {
+    if (Array.isArray(arr)) return arr;
+  }
+
+  function _iterableToArrayLimit(arr, i) {
+    var _i = arr == null ? null : typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"];
+
+    if (_i == null) return;
+    var _arr = [];
+    var _n = true;
+    var _d = false;
+
+    var _s, _e;
+
+    try {
+      for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) {
+        _arr.push(_s.value);
+
+        if (i && _arr.length === i) break;
+      }
+    } catch (err) {
+      _d = true;
+      _e = err;
+    } finally {
+      try {
+        if (!_n && _i["return"] != null) _i["return"]();
+      } finally {
+        if (_d) throw _e;
+      }
+    }
+
+    return _arr;
+  }
+
+  function _unsupportedIterableToArray(o, minLen) {
+    if (!o) return;
+    if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+    var n = Object.prototype.toString.call(o).slice(8, -1);
+    if (n === "Object" && o.constructor) n = o.constructor.name;
+    if (n === "Map" || n === "Set") return Array.from(o);
+    if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+  }
+
+  function _arrayLikeToArray(arr, len) {
+    if (len == null || len > arr.length) len = arr.length;
+
+    for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+
+    return arr2;
+  }
+
+  function _nonIterableRest() {
+    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+
   var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
   var ncname = "[a-zA-Z_][\\-\\.0-9_a-zA-Z]*";
   var qnameCapture = "((?:".concat(ncname, "\\:)?").concat(ncname, ")");
@@ -156,45 +250,93 @@
     return root;
   }
 
+  var defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g; // {{ aaa }} 匹配到表达式变量
+
+  function genProps(attrs) {
+    var str = "";
+    attrs.forEach(function (_ref) {
+      var name = _ref.name,
+          value = _ref.value;
+
+      if (name === "style") {
+        var obj = {}; // color: "red"; top: 0; => 转换成 对象
+
+        value.split(";").forEach(function (item) {
+          var _item$split = item.split(":"),
+              _item$split2 = _slicedToArray(_item$split, 2),
+              key = _item$split2[0],
+              val = _item$split2[1];
+
+          obj[key] = val;
+        });
+        value = obj;
+      }
+
+      str += "".concat(name, ":").concat(JSON.stringify(value), ",");
+    });
+    return "{".concat(str.slice(0, -1), "}");
+  }
+
+  function gen(node) {
+    if (node.type === 3) {
+      return genCode(node);
+    } else {
+      console.log(node);
+      var text = node.text;
+
+      if (!defaultTagRE.test(text)) {
+        return "_v(".concat(JSON.stringify(text), ")");
+      } else {
+        // 匹配 {{name}} hello {{age}} world
+        // _v(_s(name) + "hello" + _s(age))
+        var tokens = [];
+        var match;
+        defaultTagRE.lastIndex = 0;
+        var lastIndex = 0;
+
+        while (match = defaultTagRE.exec(text)) {
+          var index = match.index;
+
+          if (index > lastIndex) {
+            tokens.push(JSON.stringify(text.slice(lastIndex, index)));
+          }
+
+          tokens.push("_s(".concat(match[1].trim(), ")"));
+          lastIndex = index + match[0].length;
+        }
+
+        if (lastIndex < text.length) {
+          tokens.push(JSON.stringify(text.slice(lastIndex)));
+        }
+
+        console.log("[index] tokens", tokens);
+        return "_v(".concat(tokens.join("+"), ")");
+      }
+    }
+  }
+
+  function genChildren(children) {
+    return children.map(function (child) {
+      return gen(child);
+    }).join(",");
+  }
+
+  function genCode(ast) {
+    var strProps = ast.attrs.length > 0 ? genProps(ast.attrs) : "null";
+    var strChild = ast.children.length ? "," + genChildren(ast.children) : "";
+    var code = "_c('".concat(ast.tag, "',").concat(strProps).concat(strChild, ")");
+    return code;
+  }
+
   function compileToFunction(template) {
     // 1. 将 template 转换成 ast
     var ast = parseHTML(template);
     console.log("ast:", ast); // 2. 生成 render 方法(render 的返回值就是 虚拟 DOM)
-  }
 
-  function _typeof(obj) {
-    "@babel/helpers - typeof";
+    var code = genCode(ast);
+    var render = new Function("with(this){return ".concat(code, "}")); // console.log(`[index] render`, render.toString());
 
-    return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
-      return typeof obj;
-    } : function (obj) {
-      return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-    }, _typeof(obj);
-  }
-
-  function _classCallCheck(instance, Constructor) {
-    if (!(instance instanceof Constructor)) {
-      throw new TypeError("Cannot call a class as a function");
-    }
-  }
-
-  function _defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
-    }
-  }
-
-  function _createClass(Constructor, protoProps, staticProps) {
-    if (protoProps) _defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) _defineProperties(Constructor, staticProps);
-    Object.defineProperty(Constructor, "prototype", {
-      writable: false
-    });
-    return Constructor;
+    return render;
   }
 
   // 重写数组中的部分方法
@@ -378,6 +520,8 @@
           opts.render = compileToFunction(template);
         }
       }
+
+      console.log(opts.render);
     };
   }
 

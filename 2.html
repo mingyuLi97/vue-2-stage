@@ -7,12 +7,18 @@
     <title>Document</title>
   </head>
   <body>
-    <div id="app" class="main">
-      <div :style="{padding: 4px}">{{name}}</div>
+    <div
+      id="app"
+      class="main"
+      style="right: 0; color: #000; background-color: #000"
+    >
+      <div style="padding: 4px">{{name}} hello {{name}}</div>
       {{addr.name}}
       <span>123</span>
-      <aside class="aside_class">
-      </aside>
+      <aside
+        class="aside_class"
+        style="right: 0; color: #000; background-color: #000"
+      ></aside>
     </div>
     <script src="dist/vue.js"></script>
     <script>
