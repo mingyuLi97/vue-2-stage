@@ -57,7 +57,7 @@ function genChildren(children) {
 }
 
 function genCode(ast) {
-  const strProps = ast.attrs.length > 0 ? genProps(ast.attrs) : "null";
+  const strProps = ast.attrs.length > 0 ? genProps(ast.attrs) : "undefined";
   const strChild = ast.children.length ? "," + genChildren(ast.children) : "";
   let code = `_c('${ast.tag}',${strProps}${strChild})`;
 
@@ -70,6 +70,7 @@ export function compileToFunction(template) {
   console.log("ast:", ast);
   // 2. 生成 render 方法(render 的返回值就是 虚拟 DOM)
   const code = genCode(ast);
+  // _v(_s(name) + "hello" + _s(age)) 里面的 name age 等变量是找不到的 需要通过 with，让其去 this(vm) 寻找
   const render = new Function(`with(this){return ${code}}`);
   // console.log(`[index] render`, render.toString());
   return render;

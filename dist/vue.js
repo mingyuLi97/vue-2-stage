@@ -322,7 +322,7 @@
   }
 
   function genCode(ast) {
-    var strProps = ast.attrs.length > 0 ? genProps(ast.attrs) : "null";
+    var strProps = ast.attrs.length > 0 ? genProps(ast.attrs) : "undefined";
     var strChild = ast.children.length ? "," + genChildren(ast.children) : "";
     var code = "_c('".concat(ast.tag, "',").concat(strProps).concat(strChild, ")");
     return code;
@@ -333,11 +333,90 @@
     var ast = parseHTML(template);
     console.log("ast:", ast); // 2. 生成 render 方法(render 的返回值就是 虚拟 DOM)
 
-    var code = genCode(ast);
+    var code = genCode(ast); // _v(_s(name) + "hello" + _s(age)) 里面的 name age 等变量是找不到的 需要通过 with，让其去 this(vm) 寻找
+
     var render = new Function("with(this){return ".concat(code, "}")); // console.log(`[index] render`, render.toString());
 
     return render;
   }
+
+  // _c()
+  function createElementVNode(vm, tag) {
+    var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    var key = data.key;
+
+    if (key) {
+      delete data.key;
+    }
+
+    for (var _len = arguments.length, children = new Array(_len > 3 ? _len - 3 : 0), _key = 3; _key < _len; _key++) {
+      children[_key - 3] = arguments[_key];
+    }
+
+    return vnode(vm, tag, key, data, children);
+  } // _v()
+
+  function createTextVNode(vm, text) {
+    return vnode(vm, undefined, undefined, undefined, undefined, text);
+  }
+
+  function vnode(vm, tag, key, data, children, text) {
+    return {
+      vm: vm,
+      tag: tag,
+      key: key,
+      data: data,
+      children: children,
+      text: text
+    };
+  }
+
+  function initLifeCycle(Vue) {
+    Vue.prototype._update = function (vnode) {
+      console.log("[lifecycle] update", vnode); // 初始化/更新 真实 dom
+
+      patch();
+    }; // _c('div', {}, ...children)
+
+
+    Vue.prototype._c = function () {
+      return createElementVNode.apply(void 0, [this].concat(Array.prototype.slice.call(arguments)));
+    }; // _v(text)
+
+
+    Vue.prototype._v = function () {
+      return createTextVNode.apply(void 0, [this].concat(Array.prototype.slice.call(arguments)));
+    };
+
+    Vue.prototype._s = function (val) {
+      if (_typeof(val) !== "object") return val;
+      return JSON.stringify(val);
+    };
+
+    Vue.prototype._render = function () {
+      console.log("[lifecycle] render");
+      var vm = this;
+      /**
+       * ast 生成的 render
+       * 渲染时会去 vm 上取值，以达成数据和视图绑定到一起
+       */
+
+      return vm.$options.render.call(vm);
+    };
+  }
+  function mountComponent(vm, el) {
+    // 2. 根据虚拟 dom 生成真实 dom
+    // 3. 插入到 el
+
+    vm._update(vm._render());
+  } // vue 流程
+
+  /**
+   * 1. 创建响应式数据
+   * 2. 模版转换成 ast
+   * 3. ast 转换成 render 函数
+   * 4. 每次数据更新 直接调用 render 函数，无需再次执行 ast 转换
+   */
 
   // 重写数组中的部分方法
   var oldArrayProto = Array.prototype;
@@ -522,6 +601,7 @@
       }
 
       console.log(opts.render);
+      mountComponent(vm);
     };
   }
 
@@ -530,6 +610,7 @@
   }
 
   initMixin(Vue);
+  initLifeCycle(Vue);
 
   return Vue;
 
