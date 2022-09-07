@@ -10,7 +10,7 @@
     <div
       id="app"
       class="main"
-      style="right: 0; color: #000; background-color: #000"
+      style="right: 0; color: #fff; background-color: #000"
     >
       <div style="padding: 4px">{{name}} hello {{name}}</div>
       {{addr.name}}
@@ -45,6 +45,10 @@
         },
       });
 
+      setTimeout(() => {
+        vm.name = "new new";
+        vm._update(vm._render());
+      }, 1000);
       // vue 1.0 没有引入虚拟 DOM 使用 模版引擎，需要正则匹配替换 性能差
 
       //

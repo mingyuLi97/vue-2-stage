@@ -9,7 +9,7 @@ function genProps(attrs) {
       // color: "red"; top: 0; => 转换成 对象
       value.split(";").forEach((item) => {
         const [key, val] = item.split(":");
-        obj[key] = val;
+        obj[key.trim()] = val.trim();
       });
       value = obj;
     }
