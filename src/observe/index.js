@@ -1,4 +1,5 @@
 import { newArrayProto } from "./array";
+import Dep from "./dep";
 
 class Observer {
   constructor(data) {
@@ -43,9 +44,13 @@ class Observer {
 export function defineReactive(target, key, val) {
   // 递归深度劫持
   observe(val);
+  const dep = new Dep();
   // 闭包 会将 val 存在 defineReactive 这个作用域里
   Object.defineProperty(target, key, {
     get() {
+      if (Dep.target) {
+        dep.depend();
+      }
       return val;
     },
     set(newVal) {
@@ -53,6 +58,7 @@ export function defineReactive(target, key, val) {
       // 当重新赋值时，新值也要进行劫持
       observe(newVal);
       val = newVal;
+      dep.notify();
     },
   });
 }

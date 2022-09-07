@@ -1,3 +1,4 @@
+import Watcher from "./observe/watcher";
 import { createElementVNode, createTextVNode } from "./vdom";
 
 /**
@@ -99,8 +100,10 @@ export function mountComponent(vm, el) {
   // 2. 根据虚拟 dom 生成真实 dom
   // 3. 插入到 el
   vm.$el = el;
-
-  vm._update(vm._render());
+  const updateComponent = () => {
+    vm._update(vm._render());
+  };
+  console.log(new Watcher(vm, updateComponent));
 }
 
 // vue 流程

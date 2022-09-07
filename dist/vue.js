@@ -340,6 +340,112 @@
     return render;
   }
 
+  var id$1 = 0;
+  /**
+   *
+   */
+
+  var Dep = /*#__PURE__*/function () {
+    function Dep() {
+      _classCallCheck(this, Dep);
+
+      this.id = id$1++; // 存放 watcher
+
+      this.subs = [];
+    }
+    /**
+     * 依赖收集
+     * 不希望取到重复的 watcher，所以使用 addSub 方法来替代 this.subs.push
+     * addSub 是在 watcher 里调用、去重
+     */
+
+
+    _createClass(Dep, [{
+      key: "depend",
+      value: function depend() {
+        // this.subs.push(Dep.target);
+        Dep.target.addDep(this);
+      }
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          return watcher.update();
+        });
+      }
+    }, {
+      key: "addSub",
+      value: function addSub(watcher) {
+        this.subs.push(watcher);
+      }
+    }]);
+
+    return Dep;
+  }();
+
+  Dep.target = null;
+
+  var id = 0;
+  /**
+   * 不同组件会有不同的 watcher 实例，通过 id 区分
+   * @return {*}
+   */
+
+  var Watcher = /*#__PURE__*/function () {
+    function Watcher(vm, cb) {
+      _classCallCheck(this, Watcher);
+
+      this.id = id++;
+      /**
+       * 收集依赖的属性（dep）计算属性、组件卸载等地方会用
+       */
+
+      this.deps = [];
+      this.depsIds = new Set();
+      this.getter = cb; // getter 意味着调用这个函数可以发生取值操作
+
+      this.get();
+    }
+
+    _createClass(Watcher, [{
+      key: "get",
+      value: function get() {
+        // Dep 的静态变量
+        Dep.target = this;
+        this.getter();
+        /**
+         * 为什么要赋值 null
+         * 在外部也会有取值的情况，同样会触发 get，赋值 null 可以保证仅在 watcher 里收集
+         */
+
+        Dep.target = null;
+      }
+    }, {
+      key: "addDep",
+      value: function addDep(dep) {
+        var id = dep.id;
+
+        if (!this.depsIds.has(id)) {
+          this.deps.push(dep);
+          this.depsIds.add(id);
+          dep.addSub(this);
+        }
+      }
+    }, {
+      key: "update",
+      value: function update() {
+        console.log("[watcher] update");
+        this.get();
+      }
+    }]);
+
+    return Watcher;
+  }();
+  /**
+   * 1. 创建 watcher 时 会把当前实例挂载在 Dep.target 上
+   * 2. 调用 _render() 时，会取值，触发响应式的 get
+   */
+
   // _c()
   function createElementVNode(vm, tag) {
     var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
@@ -477,7 +583,11 @@
     // 3. 插入到 el
     vm.$el = el;
 
-    vm._update(vm._render());
+    var updateComponent = function updateComponent() {
+      vm._update(vm._render());
+    };
+
+    console.log(new Watcher(vm, updateComponent));
   } // vue 流程
 
   /**
@@ -574,10 +684,15 @@
 
   function defineReactive(target, key, val) {
     // 递归深度劫持
-    observe(val); // 闭包 会将 val 存在 defineReactive 这个作用域里
+    observe(val);
+    var dep = new Dep(); // 闭包 会将 val 存在 defineReactive 这个作用域里
 
     Object.defineProperty(target, key, {
       get: function get() {
+        if (Dep.target) {
+          dep.depend();
+        }
+
         return val;
       },
       set: function set(newVal) {
@@ -585,6 +700,7 @@
 
         observe(newVal);
         val = newVal;
+        dep.notify();
       }
     });
   }

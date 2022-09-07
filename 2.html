@@ -12,7 +12,7 @@
       class="main"
       style="right: 0; color: #fff; background-color: #000"
     >
-      <div style="padding: 4px">{{name}} hello {{name}}</div>
+      <div style="padding: 4px">{{name}} hello {{name}} {{age}}</div>
       {{addr.name}}
       <span>123</span>
       <aside
@@ -30,6 +30,7 @@
           return {
             name: "limy",
             age: 25,
+            ccc: 1,
             addr: {
               num: 1,
               cc: 1,
@@ -47,7 +48,8 @@
 
       setTimeout(() => {
         vm.name = "new new";
-        vm._update(vm._render());
+        vm.age = 111;
+        vm.ccc = 12;
       }, 1000);
       // vue 1.0 没有引入虚拟 DOM 使用 模版引擎，需要正则匹配替换 性能差
 
