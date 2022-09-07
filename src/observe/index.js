@@ -5,6 +5,8 @@ class Observer {
   constructor(data) {
     // Object.defineProperty 只能劫持存在的属性，新增的 删除的检测不到
 
+    this.dep = new Dep();
+
     // 将当前对象的实例挂载到 data 上，为了 在 array.js 文件中重写方法时 能调用到 ob 的方法
     // data.__ob__ = this; 不能这样写，因为在遍历对象的时候会死循环
     Object.defineProperty(data, "__ob__", {
@@ -43,13 +45,21 @@ class Observer {
  */
 export function defineReactive(target, key, val) {
   // 递归深度劫持
-  observe(val);
+  const ob = observe(val);
   const dep = new Dep();
   // 闭包 会将 val 存在 defineReactive 这个作用域里
   Object.defineProperty(target, key, {
     get() {
       if (Dep.target) {
+        // 对象里的属性进行依赖收集
         dep.depend();
+        // 对象、数组本身进行依赖收集
+        if (ob) {
+          ob.dep.depend();
+          if (Array.isArray(val)) {
+            // TODO: [1,2,[1,4]] 这种数组套数组的情况还是不会依赖收集，所以需要递归添加
+          }
+        }
       }
       return val;
     },

@@ -13,8 +13,8 @@
       style="right: 0; color: #fff; background-color: #000"
     >
       <div style="padding: 4px">{{name}} hello {{name}} {{age}}</div>
-      {{addr.name}}
-      <span>123</span>
+      {{addr.num}}
+      <span>{{hobbies}}</span>
       <aside
         class="aside_class"
         style="right: 0; color: #000; background-color: #000"
@@ -44,22 +44,26 @@
             ],
           };
         },
-        created(){
-          console.log(`[2] created`)
-        }
+        created() {
+          console.log(`[2] created`);
+        },
       });
 
       vm.$nextTick(() => {
         console.log(document.querySelector("#app").innerHTML);
       });
-      vm.name = "new new";
-      vm.age = 111;
-      vm.ccc = 12;
+      // vm.name = "new new";
+      // vm.age = 111;
+      // vm.ccc = 12;
 
-      vm.$nextTick(() => {
-        console.log(111111);
-        console.log(document.querySelector("#app").innerHTML);
-      });
+      console.log("vm", vm);
+      // setTimeout(() => {
+      vm.hobbies.push("js");
+      // }, 1000);
+      // vm.$nextTick(() => {
+      //   console.log(111111);
+      //   console.log(document.querySelector("#app").innerHTML);
+      // });
 
       // vue 1.0 没有引入虚拟 DOM 使用 模版引擎，需要正则匹配替换 性能差
 

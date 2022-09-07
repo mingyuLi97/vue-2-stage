@@ -37,6 +37,7 @@ methods.forEach((method) => {
     }
 
     console.log(`[array] 劫持了数组的方法`);
+    ob.dep.notify();
     return result;
   };
 });

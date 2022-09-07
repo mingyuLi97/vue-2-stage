@@ -647,7 +647,7 @@
       vm._update(vm._render());
     };
 
-    console.log(new Watcher(vm, updateComponent));
+    new Watcher(vm, updateComponent);
   } // vue 流程
 
   /**
@@ -697,6 +697,7 @@
       }
 
       console.log("[array] \u52AB\u6301\u4E86\u6570\u7EC4\u7684\u65B9\u6CD5");
+      ob.dep.notify();
       return result;
     };
   });
@@ -706,8 +707,9 @@
       _classCallCheck(this, Observer);
 
       // Object.defineProperty 只能劫持存在的属性，新增的 删除的检测不到
-      // 将当前对象的实例挂载到 data 上，为了 在 array.js 文件中重写方法时 能调用到 ob 的方法
+      this.dep = new Dep(); // 将当前对象的实例挂载到 data 上，为了 在 array.js 文件中重写方法时 能调用到 ob 的方法
       // data.__ob__ = this; 不能这样写，因为在遍历对象的时候会死循环
+
       Object.defineProperty(data, "__ob__", {
         value: this,
         enumerable: false
@@ -754,13 +756,18 @@
 
   function defineReactive(target, key, val) {
     // 递归深度劫持
-    observe(val);
+    var ob = observe(val);
     var dep = new Dep(); // 闭包 会将 val 存在 defineReactive 这个作用域里
 
     Object.defineProperty(target, key, {
       get: function get() {
         if (Dep.target) {
-          dep.depend();
+          // 对象里的属性进行依赖收集
+          dep.depend(); // 对象、数组本身进行依赖收集
+
+          if (ob) {
+            ob.dep.depend();
+          }
         }
 
         return val;

@@ -103,7 +103,7 @@ export function mountComponent(vm, el) {
   const updateComponent = () => {
     vm._update(vm._render());
   };
-  console.log(new Watcher(vm, updateComponent));
+  new Watcher(vm, updateComponent)
 }
 
 // vue 流程
