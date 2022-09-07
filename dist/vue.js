@@ -657,6 +657,16 @@
    * 4. 每次数据更新 直接调用 render 函数，无需再次执行 ast 转换
    */
 
+  function callHooks(vm, hook) {
+    var handlers = vm.$options[hook];
+
+    if (handlers) {
+      handlers.forEach(function (h) {
+        return h.call(vm);
+      });
+    }
+  }
+
   // 重写数组中的部分方法
   var oldArrayProto = Array.prototype;
   var newArrayProto = Object.create(oldArrayProto);
@@ -811,13 +821,45 @@
     }
   }
 
+  var LIFECYCLE_HOOKS = ["beforeCreate", "created", "beforeMount", "mounted", "beforeUpdate", "updated", "beforeDestroy", "destroyed", "activated", "deactivated", "errorCaptured", "serverPrefetch"];
+
+  /**
+   * 合并 options
+   * TODO
+   */
+
+  function mergeOptions(parent, child) {
+    var opts = {};
+
+    function mergeField(k) {
+      // 为了实现 mixin，将生命周期钩子转换成数组
+      if (LIFECYCLE_HOOKS.includes(k)) {
+        opts[k] = [child[k] || parent[k]];
+      } else {
+        opts[k] = child[k] || parent[k];
+      }
+    }
+
+    for (var key in parent) {
+      mergeField(key);
+    }
+
+    for (var _key in child) {
+      mergeField(_key);
+    }
+
+    return opts;
+  }
+
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
       // $ 开头的都认为是自己的属性，data 里设置 $name $age 会不生效
       var vm = this; // 将配置挂载到实例上 方便其他方法访问
 
-      vm.$options = options;
+      vm.$options = mergeOptions(options, {});
+      callHooks(vm, "beforeCreate");
       initState(vm);
+      callHooks(vm, "created");
 
       if (options.el) {
         vm.$mount(options.el);

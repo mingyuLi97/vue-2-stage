@@ -114,3 +114,10 @@ export function mountComponent(vm, el) {
  * 3. ast 转换成 render 函数
  * 4. 每次数据更新 直接调用 render 函数，无需再次执行 ast 转换
  */
+
+export function callHooks(vm, hook) {
+  const handlers = vm.$options[hook];
+  if (handlers) {
+    handlers.forEach((h) => h.call(vm));
+  }
+}
