@@ -434,13 +434,73 @@
     }, {
       key: "update",
       value: function update() {
-        console.log("[watcher] update");
+        // console.log(`[watcher] update`);
+        // this.get();
+        queueWatcher(this);
+      }
+    }, {
+      key: "run",
+      value: function run() {
+        console.log("[watcher] run");
         this.get();
       }
     }]);
 
     return Watcher;
   }();
+
+  var queue = [];
+  var hash = {};
+  var pending = false;
+
+  function flushSchedulerQueue() {
+    queue.slice(0).forEach(function (w) {
+      return w.run();
+    });
+    queue.length = 0;
+    hash = {};
+    pending = false;
+  }
+
+  function queueWatcher(watcher) {
+    var id = watcher.id;
+
+    if (!hash[id]) {
+      queue.push(watcher);
+      hash[id] = true;
+
+      if (!pending) {
+        nextTick(flushSchedulerQueue);
+        pending = true;
+      }
+    }
+  }
+
+  var callbacks = [];
+  var waiting = false;
+
+  function flushCallbacks() {
+    waiting = false;
+    var cbs = callbacks.slice(0);
+    callbacks.length = 0;
+    cbs.forEach(function (cb) {
+      return cb();
+    });
+  }
+
+  function nextTick(cb) {
+    callbacks.push(cb);
+
+    if (!waiting) {
+      /**
+       * 内部没有用 setTimeout 而是采用降级处理（为了兼容低版本、IE）
+       * 微任务 > 宏任务
+       * promise > MutationObserver > setImmediate > setTimeout
+       */
+      setTimeout(flushCallbacks, 0);
+      waiting = true;
+    }
+  }
   /**
    * 1. 创建 watcher 时 会把当前实例挂载在 Dep.target 上
    * 2. 调用 _render() 时，会取值，触发响应式的 get
@@ -796,6 +856,7 @@
 
   initMixin(Vue);
   initLifeCycle(Vue);
+  Vue.prototype.$nextTick = nextTick;
 
   return Vue;
 

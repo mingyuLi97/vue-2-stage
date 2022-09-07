@@ -46,11 +46,18 @@
         },
       });
 
-      setTimeout(() => {
-        vm.name = "new new";
-        vm.age = 111;
-        vm.ccc = 12;
-      }, 1000);
+      vm.$nextTick(() => {
+        console.log(document.querySelector("#app").innerHTML);
+      });
+      vm.name = "new new";
+      vm.age = 111;
+      vm.ccc = 12;
+
+      vm.$nextTick(() => {
+        console.log(111111);
+        console.log(document.querySelector("#app").innerHTML);
+      });
+
       // vue 1.0 没有引入虚拟 DOM 使用 模版引擎，需要正则匹配替换 性能差
 
       //

@@ -39,8 +39,60 @@ class Watcher {
   }
 
   update() {
-    console.log(`[watcher] update`)
+    // console.log(`[watcher] update`);
+    // this.get();
+    queueWatcher(this);
+  }
+
+  run() {
+    console.log(`[watcher] run`);
     this.get();
+  }
+}
+
+const queue = [];
+let hash = {};
+let pending = false;
+
+function flushSchedulerQueue() {
+  queue.slice(0).forEach((w) => w.run());
+  queue.length = 0;
+  hash = {};
+  pending = false;
+}
+
+function queueWatcher(watcher) {
+  const id = watcher.id;
+  if (!hash[id]) {
+    queue.push(watcher);
+    hash[id] = true;
+    if (!pending) {
+      nextTick(flushSchedulerQueue);
+      pending = true;
+    }
+  }
+}
+
+let callbacks = [];
+let waiting = false;
+
+function flushCallbacks() {
+  waiting = false;
+  const cbs = callbacks.slice(0);
+  callbacks.length = 0;
+  cbs.forEach((cb) => cb());
+}
+
+export function nextTick(cb) {
+  callbacks.push(cb);
+  if (!waiting) {
+    /**
+     * 内部没有用 setTimeout 而是采用降级处理（为了兼容低版本、IE）
+     * 微任务 > 宏任务
+     * promise > MutationObserver > setImmediate > setTimeout
+     */
+    setTimeout(flushCallbacks, 0);
+    waiting = true;
   }
 }
 
